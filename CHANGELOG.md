@@ -2,6 +2,7 @@
 
 ## v1.14.0 (unreleased)
 
+* Checking a flag in the ETS cache no longer copies and scans all of its gates. The cache now stores a row per gate type and a row per actor gate, so checking a flag for an actor is a constant-time lookup regardless of how many actor gates the flag has. Group gates are still checked as a list, and the output of `FunWithFlags.Store.Cache.dump/0` is unchanged.
 * Drop support for Erlang/OTP 25, and Erlang/OTP >= 26 is now required. Dropping support for older versions of Erlang/OTP simply means that this package is not tested with them in CI, and that no compatibility issues are considered bugs.
 
 ## v1.13.0

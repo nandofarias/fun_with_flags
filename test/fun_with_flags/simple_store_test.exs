@@ -14,6 +14,32 @@ defmodule FunWithFlags.SimpleStoreTest do
   end
 
 
+  describe "enabled?(flag_name, options)" do
+    test "it checks the flag read from the persistence adapter" do
+      name = unique_atom()
+      user = %FunWithFlags.TestUser{id: 1}
+      assert false == SimpleStore.enabled?(name, [])
+
+      SimpleStore.put(name, Gate.new(:actor, user, true))
+      assert true == SimpleStore.enabled?(name, for: user)
+      assert false == SimpleStore.enabled?(name, for: %FunWithFlags.TestUser{id: 2})
+      assert false == SimpleStore.enabled?(name, [])
+
+      SimpleStore.put(name, Gate.new(:boolean, true))
+      assert true == SimpleStore.enabled?(name, [])
+    end
+
+    test "it raises if the persistence adapter fails" do
+      name = unique_atom()
+      with_mock(@persistence, [], get: fn(^name) -> {:error, "mocked error"} end) do
+        assert_raise RuntimeError, "Can't load feature flag", fn() ->
+          SimpleStore.enabled?(name, [])
+        end
+      end
+    end
+  end
+
+
   describe "put(flag_name, %Gate{})" do
     setup do
       name = unique_atom()
