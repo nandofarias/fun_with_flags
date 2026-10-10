@@ -157,7 +157,7 @@ defmodule FunWithFlags.Store.Cache do
 
 
   @doc """
-  Returns the contents of the cache ETS table, for inspection.
+  Returns the flags stored in the cache ETS table, for inspection.
   """
   @spec dump() :: [{atom, {FunWithFlags.Flag.t, cached_at, ttl}}]
   def dump do
