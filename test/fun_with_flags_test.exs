@@ -42,7 +42,7 @@ defmodule FunWithFlagsTest do
       name = unique_atom()
       store = FunWithFlags.compiled_store()
 
-      with_mock(store, [], lookup: fn(^name) -> raise(RuntimeError, "mocked exception") end) do
+      with_mock(store, [], enabled?: fn(^name, []) -> raise(RuntimeError, "mocked exception") end) do
         assert_raise RuntimeError, "mocked exception", fn() ->
           FunWithFlags.enabled?(name)
         end

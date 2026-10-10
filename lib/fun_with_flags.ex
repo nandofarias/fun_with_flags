@@ -74,8 +74,7 @@ defmodule FunWithFlags do
   def enabled?(flag_name, options \\ [])
 
   def enabled?(flag_name, []) when is_atom(flag_name) do
-    {:ok, flag} = @store.lookup(flag_name)
-    Flag.enabled?(flag)
+    @store.enabled?(flag_name, [])
   end
 
   def enabled?(flag_name, [for: nil]) do
@@ -83,8 +82,7 @@ defmodule FunWithFlags do
   end
 
   def enabled?(flag_name, [for: item]) when is_atom(flag_name) do
-    {:ok, flag} = @store.lookup(flag_name)
-    Flag.enabled?(flag, for: item)
+    @store.enabled?(flag_name, for: item)
   end
 
 

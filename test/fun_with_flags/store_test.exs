@@ -112,6 +112,72 @@ defmodule FunWithFlags.StoreTest do
   end
 
 
+  describe "enabled?(flag_name, options)" do
+    setup %{name: name} do
+      user = %FunWithFlags.TestUser{id: 1}
+      cached = %Flag{name: name, gates: [Gate.new(:boolean, false), Gate.new(:actor, user, true)]}
+      {:ok, user: user, cached: cached}
+    end
+
+    test "with a cache hit, it does not read from the persistence adapter", %{name: name, user: user, cached: cached} do
+      Cache.put(cached)
+
+      with_mock(@persistence, [], []) do
+        assert true == Store.enabled?(name, for: user)
+        assert false == Store.enabled?(name, for: %FunWithFlags.TestUser{id: 2})
+        assert false == Store.enabled?(name, [])
+      end
+    end
+
+    test "with a cache miss, it reads from the persistence adapter and caches the flag", %{name: name, gate: gate, flag: flag} do
+      Store.put(name, gate)
+      Cache.flush()
+
+      assert true == Store.enabled?(name, [])
+      assert {:ok, ^flag} = Cache.get(name)
+      assert {:ok, true} = Cache.enabled?(name, [])
+    end
+
+    test "an undefined flag is disabled", %{name: name, user: user} do
+      assert false == Store.enabled?(name, [])
+      assert false == Store.enabled?(name, for: user)
+    end
+
+    test "with an expired cached flag, it uses the value from the persistence adapter", %{name: name, gate: gate, user: user, cached: cached} do
+      Store.put(name, gate)
+      Cache.put(cached)
+      assert true == Store.enabled?(name, for: user)
+      assert false == Store.enabled?(name, [])
+
+      timetravel by: (Config.cache_ttl + 1) do
+        assert true == Store.enabled?(name, [])
+        assert true == Store.enabled?(name, for: %FunWithFlags.TestUser{id: 2})
+      end
+    end
+
+    test "with an expired cached flag, if the persistence adapter fails, it falls back to the stale cached value", %{name: name, user: user, cached: cached} do
+      Cache.put(cached)
+
+      timetravel by: (Config.cache_ttl + 1) do
+        with_mock(@persistence, [], [get: fn(^name) -> {:error, "mocked error"} end]) do
+          assert true == Store.enabled?(name, for: user)
+          assert false == Store.enabled?(name, for: %FunWithFlags.TestUser{id: 2})
+          assert false == Store.enabled?(name, [])
+          assert called(@persistence.get(name))
+        end
+      end
+    end
+
+    test "without a cached flag, if the persistence adapter fails, it raises", %{name: name, user: user} do
+      with_mock(@persistence, [], [get: fn(^name) -> {:error, "mocked error"} end]) do
+        assert_raise RuntimeError, "Can't load feature flag '#{name}' from neither storage nor the cache", fn() ->
+          Store.enabled?(name, for: user)
+        end
+      end
+    end
+  end
+
+
   describe "put(flag_name, gate)" do
     test "put() can change the value of a flag", %{name: name, gate: gate, flag: flag} do
       assert {:ok, %Flag{name: ^name, gates: []}} = Store.lookup(name)

@@ -26,6 +26,18 @@ defmodule FunWithFlags.Store do
   end
 
 
+  @spec enabled?(atom, Keyword.t) :: boolean
+  def enabled?(flag_name, options) do
+    case Cache.enabled?(flag_name, options) do
+      {:ok, enabled} ->
+        enabled
+      :miss ->
+        {:ok, flag} = lookup(flag_name)
+        Flag.enabled?(flag, options)
+    end
+  end
+
+
   defp try_to_use_the_cached_value(:expired, value, flag_name) do
     Logger.warning "FunWithFlags: couldn't load flag '#{flag_name}' from storage, falling back to stale cached value from ETS"
     {:ok, value}

@@ -2,7 +2,7 @@ defmodule FunWithFlags.SimpleStore do
   @moduledoc false
 
   import FunWithFlags.Config, only: [persistence_adapter: 0]
-  alias FunWithFlags.Telemetry
+  alias FunWithFlags.{Flag, Telemetry}
 
   @spec lookup(atom) :: {:ok, FunWithFlags.Flag.t}
   def lookup(flag_name) do
@@ -14,6 +14,12 @@ defmodule FunWithFlags.SimpleStore do
       {:ok, flag} -> {:ok, flag}
       _ -> raise "Can't load feature flag"
     end
+  end
+
+  @spec enabled?(atom, Keyword.t) :: boolean
+  def enabled?(flag_name, options) do
+    {:ok, flag} = lookup(flag_name)
+    Flag.enabled?(flag, options)
   end
 
   @spec put(atom, FunWithFlags.Gate.t) :: {:ok, FunWithFlags.Flag.t} | {:error, any()}
